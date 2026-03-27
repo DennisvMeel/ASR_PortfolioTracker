@@ -9,9 +9,9 @@ volatility estimated from historical data.
 
 import numpy as np
 import pandas as pd
+from arch import arch_model
 
-
-def run_monte_carlo(
+def run_gbm_simulation(
     returns: pd.Series,
     initial_value: float,
     years: int = 15,
@@ -50,6 +50,81 @@ def run_monte_carlo(
         Z = np.random.standard_normal(n_paths)
         paths[t] = paths[t - 1] * np.exp((mu - 0.5 * sigma ** 2) + sigma * Z)
 
+    return paths
+
+def run_garch_simulation(
+    returns: pd.Series,
+    initial_value: float,
+    years: int = 15,
+    n_paths: int = 100_000,
+    trading_days: int = 252,
+) -> np.ndarray:
+    """
+    Simulate future portfolio value using GARCH(1,1).
+
+    The variance update follows:
+        sigma(t+1)^2 = omega + alpha * X(t)^2 + beta * sigma(t)^2
+        where X(t) is the simulated return at time t.
+
+    Parameters
+    returns         : daily log returns of the portfolio (historical)
+    initial_value   : starting portfolio value
+    years           : simulation horizon in years
+    n_paths         : number of simulated paths
+    trading_days    : trading days per year
+
+    Returns
+    paths : np.ndarray of shape (n_steps + 1, n_paths)
+    """
+
+    n_steps = years * trading_days
+
+    # Scale returns by 100 for numerical stability during fitting
+    scaled_returns = returns * 100
+
+    model = arch_model(
+        scaled_returns,
+        vol="Garch",   # GARCH volatility model
+        p=1,           # lag order of squared returns (alpha)
+        q=1,           # lag order of variance (beta)
+        dist="normal",
+    )
+
+    result = model.fit(disp="off")
+
+    # Extract fitted parameters
+    omega = result.params["omega"]
+    alpha = result.params["alpha[1]"]
+    beta  = result.params["beta[1]"]
+    mu = result.params["mu"]
+
+    # Starting variance from last fitted conditional variance
+    initial_variance = result.conditional_volatility.iloc[-1] ** 2
+
+    # Simulate paths
+    paths = np.empty((n_steps + 1, n_paths))
+    paths[0] = initial_value
+
+    # All paths start at the last observed conditional variance
+    variances = np.full(n_paths, initial_variance)
+    
+    # Initialise with the last observed scaled return
+    r = returns.iloc[-1] * 100
+
+    for t in range(1, n_steps + 1):
+        
+        # Update variance using previous sigma and return
+        variances = omega + alpha * (r - mu)**2 + beta * variances
+        
+        # Draw random shocks
+        Z = np.random.standard_normal(n_paths)
+
+        # Simulate return using updated variance
+        sigma = np.sqrt(variances)
+        r = mu + sigma * Z
+        daily_return = np.exp(r / 100)
+        paths[t] = paths[t - 1] * daily_return
+        
     return paths
 
 

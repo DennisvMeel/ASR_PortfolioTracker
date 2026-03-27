@@ -172,7 +172,8 @@ def show_price_chart_matplotlib(hist: pd.DataFrame, tickers: list[str],
         plt.show()
     plt.close(fig)
     
-def show_simulation_stats(stats: dict, initial_value: float, years: int, n_paths: int, es: float = None):
+def show_simulation_stats(stats: dict, initial_value: float, years: int, 
+                          n_paths: int, es: float = None, method: str = "gbm"):
     """
     Render a table showing Monte Carlo simulation summary statistics.
 
@@ -183,7 +184,7 @@ def show_simulation_stats(stats: dict, initial_value: float, years: int, n_paths
     n_paths       : number of simulated paths
     """
     table = Table(
-        title=f"Monte Carlo Simulation - GBM ({years}-year horizon, {n_paths} paths)",
+        title=f"Monte Carlo Simulation - {method.upper()} ({years}-year horizon, {n_paths} paths)",
         box=box.ROUNDED,
     )
     table.add_column("Metric")
@@ -210,7 +211,8 @@ def show_simulation_stats(stats: dict, initial_value: float, years: int, n_paths
     console.print(table)
     
 def show_simulation_chart(paths: np.ndarray, initial_value: float,
-                          years: int, n_paths: int, save_path: str = None):
+                          years: int, n_paths: int, save_path: str = None,
+                          method: str = "gbm"):
     """
     Plot a sample of simulation paths with percentile bands.
 
@@ -263,7 +265,7 @@ def show_simulation_chart(paths: np.ndarray, initial_value: float,
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"€{v:,.0f}"))
     ax.set_xlabel("Years")
     ax.set_ylabel("Portfolio Value")
-    ax.set_title(f"Monte Carlo Simulation — GBM ({years}-Year Horizon, {n_paths} paths)")
+    ax.set_title(f"Monte Carlo Simulation — {method.upper()} ({years}-Year Horizon, {n_paths} paths)")
     ax.legend()
     fig.tight_layout()
 
