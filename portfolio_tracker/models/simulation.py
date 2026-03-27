@@ -72,3 +72,19 @@ def simulation_stats(paths: np.ndarray) -> dict:
         "min"   : float(np.min(final)),
         "max"   : float(np.max(final)),
     }
+
+def expected_shortfall(paths: np.ndarray, confidence: float = 0.95) -> float:
+    """
+    Compute Expected Shortfall (ES) at the given confidence level.
+
+    Parameters
+    paths       : simulation output from run_monte_carlo
+    confidence  : confidence level, default 0.95
+
+    Returns
+    float : average value in the worst tail
+    """
+    final  = paths[-1]
+    cutoff = np.percentile(final, (1 - confidence) * 100)
+    tail   = final[final <= cutoff]
+    return float(np.mean(tail))

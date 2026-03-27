@@ -172,7 +172,7 @@ def show_price_chart_matplotlib(hist: pd.DataFrame, tickers: list[str],
         plt.show()
     plt.close(fig)
     
-def show_simulation_stats(stats: dict, initial_value: float, years: int, n_paths: int):
+def show_simulation_stats(stats: dict, initial_value: float, years: int, n_paths: int, es: float = None):
     """
     Render a table showing Monte Carlo simulation summary statistics.
 
@@ -201,6 +201,11 @@ def show_simulation_stats(stats: dict, initial_value: float, years: int, n_paths
     for label, val in rows:
         ratio = val / initial_value if initial_value else 0
         table.add_row(label, f"€{val:,.0f}", f"{ratio:.2f}x")
+        
+    if es is not None:
+        table.add_section()
+        ratio = es / initial_value if initial_value else 0
+        table.add_row("Expected Shortfall (95%)", f"€{es:,.0f}", f"{ratio:.2f}x")
 
     console.print(table)
     

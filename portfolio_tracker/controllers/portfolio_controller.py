@@ -13,7 +13,7 @@ import os
 from rich.console import Console
 
 from models.portfolio import Portfolio
-from models.simulation import run_monte_carlo, simulation_stats
+from models.simulation import run_monte_carlo, simulation_stats, expected_shortfall
 from views.display import (
     show_portfolio_table,
     show_summary,
@@ -257,5 +257,6 @@ class PortfolioController:
                                     years=years, n_paths=n_paths)
             
         stats = simulation_stats(paths)
-        show_simulation_stats(stats, initial_value, years, n_paths)
+        es = expected_shortfall(paths)
+        show_simulation_stats(stats, initial_value, years, n_paths, es)
         show_simulation_chart(paths, initial_value, years, n_paths, save_path=save)
