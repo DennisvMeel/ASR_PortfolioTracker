@@ -3,8 +3,10 @@ views/display.py
 View layer: all terminal output — tables, charts, and graphs.
 
 """
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 
 from rich.console import Console
 from rich.table import Table
@@ -145,6 +147,88 @@ def show_price_chart_matplotlib(hist: pd.DataFrame, tickers: list[str],
     if save_path:
         plt.savefig(save_path, dpi=150)
         console.print(f"Chart saved to {save_path}")
+    else:
+        plt.show()
+    plt.close(fig)
+    
+def show_simulation_stats(stats: dict, initial_value: float, years: int, n_paths: int):
+    """
+    Render a table showing Monte Carlo simulation summary statistics.
+
+    Parameters
+    stats         : output from simulation_stats()
+    initial_value : starting portfolio value
+    years         : simulation horizon in years
+    n_paths       : number of simulated paths
+    """
+    table = Table(
+        title=f"Monte Carlo Simulation - GBM ({years}-year horizon, {n_paths} paths)",
+        box=box.ROUNDED,
+    )
+    table.add_column("Metric")
+    table.add_column("Value", justify="right")
+    table.add_column("vs. Today", justify="right")
+
+    rows = [
+        ("5th Percentile",  stats["p5"]),
+        ("25th Percentile", stats["p25"]),
+        ("Median",          stats["median"]),
+        ("Mean",            stats["mean"]),
+        ("75th Percentile", stats["p75"]),
+        ("95th Percentile", stats["p95"]),
+    ]
+    for label, val in rows:
+        ratio = val / initial_value if initial_value else 0
+        table.add_row(label, f"€{val:,.0f}", f"{ratio:.2f}x")
+
+    console.print(table)
+    
+def show_simulation_chart(paths: np.ndarray, initial_value: float,
+                          years: int, n_paths: int, save_path: str = None):
+    """
+    Plot a sample of simulation paths with percentile bands.
+
+    Parameters
+    paths         : simulation output from run_monte_carlo
+    initial_value : starting portfolio value
+    years         : simulation horizon in years
+    n_paths       : number of simulated paths
+    save_path     : optional file path to save the chart as PNG
+    """
+    fig, ax = plt.subplots(figsize=(13, 6))
+
+    x = np.linspace(0, years, paths.shape[0])
+
+    # Draw 200 random sample paths
+    sample_idx = np.random.choice(paths.shape[1],
+                                  size=min(200, paths.shape[1]),
+                                  replace=False)
+    ax.plot(x, paths[:, sample_idx], color="steelblue",
+            alpha=0.08, linewidth=0.5)
+
+    # Percentile bands
+    p5  = np.percentile(paths, 5,  axis=1)
+    p25 = np.percentile(paths, 25, axis=1)
+    p50 = np.percentile(paths, 50, axis=1)
+    p75 = np.percentile(paths, 75, axis=1)
+    p95 = np.percentile(paths, 95, axis=1)
+
+    ax.fill_between(x, p5,  p95, alpha=0.15, color="steelblue", label="5-95th pct")
+    ax.fill_between(x, p25, p75, alpha=0.25, color="steelblue", label="25-75th pct")
+    ax.plot(x, p50, color="white", linewidth=2, label="Median")
+    ax.axhline(initial_value, color="orange", linestyle="--",
+               linewidth=1.2, label="Initial value")
+
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"€{v:,.0f}"))
+    ax.set_xlabel("Years")
+    ax.set_ylabel("Portfolio Value")
+    ax.set_title(f"Monte Carlo Simulation — GBM ({years}-Year Horizon, {n_paths} paths)")
+    ax.legend()
+    fig.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150)
+        console.print(f"Simulation chart saved to {save_path}")
     else:
         plt.show()
     plt.close(fig)

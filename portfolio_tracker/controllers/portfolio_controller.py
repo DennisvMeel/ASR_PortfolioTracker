@@ -8,16 +8,19 @@ live prices via yfinance, and passing results to the view for display.
 
 import yfinance as yf
 import pandas as pd
+import numpy as np
 from rich.console import Console
 
 from models.portfolio import Portfolio
+from models.simulation import run_monte_carlo, simulation_stats
 from views.display import (
     show_portfolio_table,
     show_summary,
     show_weights_table,
-    show_price_chart_matplotlib
+    show_price_chart_matplotlib,
+    show_simulation_stats,
+    show_simulation_chart,
 )
-
 console = Console()
 
 
@@ -172,3 +175,47 @@ class PortfolioController:
             return
         
         show_price_chart_matplotlib(hist, tickers, save_path=save)
+        
+    def run_simulation(self, years: int = 15, n_paths: int = 100_000, save: str = None):
+        """
+        Run a GBM Monte Carlo simulation on the current portfolio.
+        
+        Fetches 5 years of price history, computes weighted portfolio
+        returns, and simulates future portfolio value over the given horizon.
+
+        Parameters 
+        years   : simulation horizon in years
+        n_paths : number of simulated paths
+        save    : optional file path to save the chart as PNG
+        """
+        self.refresh_prices()
+        tickers = [a.ticker for a in self.portfolio.assets]
+        if not tickers:
+            console.print("No assets to simulate.")
+            return
+
+        # Build portfolio weights
+        weights = self.portfolio.asset_weights()
+
+        # Fetch 5 years of history for return estimation
+        hist = self.get_price_history(tickers, period="5y")
+        if hist.empty:
+            return
+
+        # Compute daily weighted portfolio log returns
+        daily_returns = hist.apply(lambda col: np.log(col / col.shift(1))).dropna()
+        w_series = pd.Series(weights)
+        common = daily_returns.columns.intersection(w_series.index)
+        w_norm = w_series[common] / w_series[common].sum()
+        portfolio_returns = (daily_returns[common] * w_norm).sum(axis=1)
+
+        initial_value = self.portfolio.total_value
+        console.print(f"Running {n_paths:,} Monte Carlo paths over {years} years...")
+
+        with console.status("Simulating..."):
+            paths = run_monte_carlo(portfolio_returns, initial_value,
+                                    years=years, n_paths=n_paths)
+            
+        stats = simulation_stats(paths)
+        show_simulation_stats(stats, initial_value, years, n_paths)
+        show_simulation_chart(paths, initial_value, years, n_paths, save_path=save)

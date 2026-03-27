@@ -66,6 +66,18 @@ def prices(tickers, period, save):
     """Show price history for one or more tickers."""
     controller.show_prices(list(tickers), period=period, save=save)
 
-# Entry point                                                         #
+# Simulation Commands
+@cli.command()
+@click.option("--years",  "-y", default=15,      show_default=True, type=int,
+              help="Simulation horizon in years")
+@click.option("--paths",  "-n", default=100_000, show_default=True, type=int,
+              help="Number of simulated paths")
+@click.option("--save",   default=None, metavar="FILE",
+              help="Save simulation chart to PNG")
+def simulate(years, paths, save):
+    """Run a Monte Carlo simulation on the current portfolio."""
+    controller.run_simulation(years=years, n_paths=paths, save=save)
+
+# Entry point
 if __name__ == "__main__":
     cli()
