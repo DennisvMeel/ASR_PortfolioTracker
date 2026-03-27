@@ -198,20 +198,35 @@ def show_simulation_chart(paths: np.ndarray, initial_value: float,
     fig, ax = plt.subplots(figsize=(13, 6))
 
     x = np.linspace(0, years, paths.shape[0])
+    
+    # Downsample to 5000 paths for plotting — no visible difference
+    if paths.shape[1] > 5000:
+        idx = np.random.choice(paths.shape[1], size=5000, replace=False)
+        plot_paths = paths[:, idx]
+    else:
+        plot_paths = paths
+        
+    # Reduce time steps to monthly intervals for faster plotting
+    total_steps = plot_paths.shape[0]
+    target_steps = years * 12
+    step_size = max(1, total_steps // target_steps)
+    plot_paths = plot_paths[::step_size, :]
+    
+    x = np.linspace(0, years, plot_paths.shape[0])
 
     # Draw 200 random sample paths
-    sample_idx = np.random.choice(paths.shape[1],
-                                  size=min(200, paths.shape[1]),
+    sample_idx = np.random.choice(plot_paths.shape[1],
+                                  size=min(200, plot_paths.shape[1]),
                                   replace=False)
-    ax.plot(x, paths[:, sample_idx], color="steelblue",
+    ax.plot(x, plot_paths[:, sample_idx], color="steelblue",
             alpha=0.08, linewidth=0.5)
 
     # Percentile bands
-    p5  = np.percentile(paths, 5,  axis=1)
-    p25 = np.percentile(paths, 25, axis=1)
-    p50 = np.percentile(paths, 50, axis=1)
-    p75 = np.percentile(paths, 75, axis=1)
-    p95 = np.percentile(paths, 95, axis=1)
+    p5  = np.percentile(plot_paths, 5,  axis=1)
+    p25 = np.percentile(plot_paths, 25, axis=1)
+    p50 = np.percentile(plot_paths, 50, axis=1)
+    p75 = np.percentile(plot_paths, 75, axis=1)
+    p95 = np.percentile(plot_paths, 95, axis=1)
 
     ax.fill_between(x, p5,  p95, alpha=0.15, color="steelblue", label="5-95th pct")
     ax.fill_between(x, p25, p75, alpha=0.25, color="steelblue", label="25-75th pct")
