@@ -1,0 +1,126 @@
+"""
+controllers/portfolio_controller.py
+Controller layer: orchestrates data flow between Model and View.
+
+Manages user commands by fetching data from the model, retrieving
+live prices via yfinance, and passing results to the view for display.
+"""
+
+import yfinance as yf
+import pandas as pd
+from rich.console import Console
+
+from models.portfolio import Portfolio
+from views.display import (
+    show_portfolio_table,
+    show_summary,
+    show_weights_table,
+)
+
+console = Console()
+
+
+class PortfolioController:
+    """
+    Main controller class.
+    
+    Instantiated once at startup and shared across all CLI commands.
+    Holds a reference to the active Portfolio model and delegates
+    rendering to the view functions.
+    """
+
+    def __init__(self):
+        self.portfolio = Portfolio()
+
+    # Asset management
+    def add_asset(self, ticker: str, sector: str, asset_class: str,
+                  quantity: float, purchase_price: float):
+        """
+        Validate the ticker via yfinance, fetch its current price,
+        then add it to the portfolio model.
+        """
+        ticker = ticker.upper()
+
+        # Validate ticker against yfinance before adding
+        with console.status(f"Validating ticker {ticker}..."):
+            # Validate for the last 5 days in case of weekends/holidays
+            data = yf.download(ticker, period="5d", auto_adjust=True, progress=False)
+
+        if data.empty:
+            console.print(f"'{ticker}' could not be found on yfinance. "
+                          f"Please check the ticker and try again.")
+            return
+
+        # Get the current price from the most recent close
+        current_price = float(data["Close"].iloc[-1])
+
+        asset = self.portfolio.add_asset(ticker, sector, asset_class,
+                                         quantity, purchase_price)
+        asset.current_price = current_price
+        self.portfolio.save()
+
+        console.print(f"Added {ticker} — {quantity} units @ "
+                      f"€{purchase_price:.2f} (current price: €{current_price:.2f})")
+
+    def remove_asset(self, ticker: str):
+        """Remove an asset from the portfolio by ticker."""
+        if self.portfolio.remove_asset(ticker):
+            console.print(f"Removed {ticker.upper()} from portfolio.")
+        else:
+            console.print(f"Ticker {ticker.upper()} not found in portfolio.")
+
+    # Price refreshing
+    def refresh_prices(self):
+        """Get current prices for all tickers via yfinance."""
+        tickers = [a.ticker for a in self.portfolio.assets]
+        if not tickers:
+            console.print("No assets in portfolio.")
+            return
+
+        with console.status("Fetching live prices..."):
+            data = yf.download(tickers, period="1d", auto_adjust=True, progress=False)
+
+        if data.empty:
+            console.print("Could not fetch prices. Check your internet connection.")
+            return
+
+        # Handle single vs multiple tickers — yfinance returns different shapes
+        prices = {}
+        if len(tickers) == 1:
+            prices[tickers[0]] = float(data["Close"].iloc[-1])
+        else:
+            for t in tickers:
+                try:
+                    prices[t] = float(data["Close"][t].iloc[-1])
+                except Exception:
+                    console.print(f"Warning: could not get price for {t}")
+
+        self.portfolio.update_prices(prices)
+
+    # View commands
+
+    def show_portfolio(self, refresh: bool = True):
+        """
+        Display the full portfolio table and summary panel.
+        Optionally refreshes live prices before rendering.
+        """
+        if refresh:
+            self.refresh_prices()
+        weights = self.portfolio.asset_weights()
+        show_portfolio_table(self.portfolio.assets, weights)
+        show_summary(self.portfolio.total_value, self.portfolio.total_cost)
+
+    def show_weights(self, by: str = "asset"):
+        """
+        Display portfolio weights grouped by asset, sector, or asset class.
+        
+        Parameters
+        by : 'asset', 'sector', or 'class'
+        """
+        self.refresh_prices()
+        if by == "sector":
+            show_weights_table("Sector", self.portfolio.weights_by_sector())
+        elif by == "class":
+            show_weights_table("Asset Class", self.portfolio.weights_by_asset_class())
+        else:
+            show_weights_table("Ticker", self.portfolio.asset_weights())
