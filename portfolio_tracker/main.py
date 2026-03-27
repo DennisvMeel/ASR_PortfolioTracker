@@ -77,6 +77,30 @@ def prices(tickers, period, save):
 def simulate(years, paths, save):
     """Run a Monte Carlo simulation on the current portfolio."""
     controller.run_simulation(years=years, n_paths=paths, save=save)
+    
+# Portfolio Management
+@cli.command()
+@click.option("--name", "-n", required=True, help="Portfolio name")
+def new_portfolio(name):
+    """Create and switch to a new portfolio."""
+    controller.new_portfolio(name)
+
+@cli.command()
+@click.option("--name", "-n", required=True)
+def switch_portfolio(name):
+    """Switch to an existing portfolio."""
+    controller.switch_portfolio(name)
+
+@cli.command()
+def list_portfolios():
+    """List all saved portfolios."""
+    controller.list_portfolios()
+
+@cli.command()
+@click.option("--name", "-n", required=True)
+def delete_portfolio(name):
+    """Delete a portfolio."""
+    controller.delete_portfolio(name)
 
 # Entry point
 if __name__ == "__main__":

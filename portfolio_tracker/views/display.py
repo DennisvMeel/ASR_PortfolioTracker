@@ -17,6 +17,27 @@ from rich.text import Text
 console = Console()
 
 
+def show_portfolio_list(portfolios: list[str], active: str):
+    """
+    Render a table listing all saved portfolios.
+
+    Parameters
+    portfolios : list of portfolio names
+    active     : name of the currently active portfolio
+    """
+    table = Table(
+        title="Saved Portfolios",
+        box=box.SIMPLE_HEAD,
+    )
+    table.add_column("Name")
+    table.add_column("Status", justify="right")
+
+    for name in portfolios:
+        status = "active" if name == active else ""
+        table.add_row(name, status)
+
+    console.print(table)
+
 # Portfolio tables
 
 def show_portfolio_table(assets, weights: dict[str, float]):

@@ -9,6 +9,7 @@ live prices via yfinance, and passing results to the view for display.
 import yfinance as yf
 import pandas as pd
 import numpy as np
+import os
 from rich.console import Console
 
 from models.portfolio import Portfolio
@@ -20,6 +21,7 @@ from views.display import (
     show_price_chart_matplotlib,
     show_simulation_stats,
     show_simulation_chart,
+    show_portfolio_list
 )
 console = Console()
 
@@ -34,7 +36,8 @@ class PortfolioController:
     """
 
     def __init__(self):
-        self.portfolio = Portfolio()
+        active = Portfolio.get_active_name()
+        self.portfolio = Portfolio(name=active)
 
     # Asset management
     def add_asset(self, ticker: str, sector: str, asset_class: str,
@@ -100,6 +103,43 @@ class PortfolioController:
                     console.print(f"Warning: could not get price for {t}")
 
         self.portfolio.update_prices(prices)
+        
+    # Portfolio edit commands
+    def new_portfolio(self, name: str):
+        """Create a new portfolio and switch to it."""
+        if name in Portfolio.list_portfolios():
+            console.print(f"Portfolio '{name}' already exists, please choose a new name.")
+            return
+        self.portfolio = Portfolio(name=name)
+        Portfolio.set_active_name(name)
+        self.portfolio.save()
+        console.print(f"Created and switched to portfolio '{name}'")
+
+    def switch_portfolio(self, name: str):
+        """Switch to an existing portfolio."""
+        if name not in Portfolio.list_portfolios():
+            console.print(f"Portfolio '{name}' does not exist.")
+            return
+        self.portfolio = Portfolio(name=name)
+        Portfolio.set_active_name(name)
+        console.print(f"Switched to portfolio '{name}'")
+
+    def list_portfolios(self):
+        """List all saved portfolios."""
+        portfolios = Portfolio.list_portfolios()
+        active = Portfolio.get_active_name()
+        show_portfolio_list(portfolios, active)
+
+    def delete_portfolio(self, name: str):
+        """Delete a portfolio by name."""
+        if name not in Portfolio.list_portfolios():
+            console.print(f"Portfolio '{name}' does not exist.")
+            return
+        if name == Portfolio.get_active_name():
+            console.print("Cannot delete the active portfolio.")
+            return
+        os.remove(f"data/{name}.json")
+        console.print(f"Deleted portfolio '{name}'")
 
     # View commands
 

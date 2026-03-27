@@ -52,6 +52,7 @@ class Asset:
             return 0.0
         return (self.profit_loss / self.transaction_value) * 100
 
+ACTIVE_FILE = "data/active_portfolio.txt"
 
 class Portfolio:
     """
@@ -64,11 +65,39 @@ class Portfolio:
     - Computing metrics for the entire portfolio
     """
 
-    def __init__(self, data_file: str = "data/portfolio.json"):
-        self.data_file = data_file
+    def __init__(self, name: str = "data/default.json"):
+        self.name = name
+        self.data_file = f"data/{name}.json"
         self.assets: list[Asset] = []
         self._ensure_data_dir()
         self.load()
+        
+        
+    # Static methods for loading/saving portfolios
+    @staticmethod
+    def get_active_name() -> str:
+        """Read which portfolio is currently active."""
+        if not os.path.exists(ACTIVE_FILE):
+            return "default"
+        with open(ACTIVE_FILE) as f:
+            return f.read().strip()
+
+    @staticmethod
+    def set_active_name(name: str):
+        """Save the active portfolio name."""
+        with open(ACTIVE_FILE, "w") as f:
+            f.write(name)
+
+    @staticmethod
+    def list_portfolios() -> list[str]:
+        """Return all saved portfolio names."""
+        if not os.path.exists("data"):
+            return []
+        return [
+            f.replace(".json", "")
+            for f in os.listdir("data")
+            if f.endswith(".json")
+        ]
 
     # Saving data 
     def _ensure_data_dir(self):
@@ -188,3 +217,5 @@ class Portfolio:
         if total == 0:
             return {k: 0.0 for k in totals}
         return {k: v / total for k, v in totals.items()}
+    
+    
