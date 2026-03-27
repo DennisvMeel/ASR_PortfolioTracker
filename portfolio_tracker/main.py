@@ -52,9 +52,20 @@ def view(no_refresh):
 def weights(by):
     """Show portfolio weights."""
     controller.show_weights(by=by)
-
+    
+# Historic Graphs
+@cli.command()
+@click.argument("tickers", nargs=-1, required=True)
+@click.option("--period", "-p",
+              default="1y", show_default=True,
+              type=click.Choice(["1mo","3mo","6mo","1y","2y","5y"]),
+              help="History period")
+@click.option("--save", default=None, metavar="FILE",
+              help="Save chart to a PNG file instead of showing it")
+def prices(tickers, period, save):
+    """Show price history for one or more tickers."""
+    controller.show_prices(list(tickers), period=period, save=save)
 
 # Entry point                                                         #
-
 if __name__ == "__main__":
     cli()

@@ -15,6 +15,7 @@ from views.display import (
     show_portfolio_table,
     show_summary,
     show_weights_table,
+    show_price_chart_matplotlib
 )
 
 console = Console()
@@ -124,3 +125,50 @@ class PortfolioController:
             show_weights_table("Asset Class", self.portfolio.weights_by_asset_class())
         else:
             show_weights_table("Ticker", self.portfolio.asset_weights())
+            
+    def get_price_history(self, tickers: list[str], period: str = "1y") -> pd.DataFrame:
+        """
+        Fetch historical closing prices for one or more tickers via yfinance.
+        
+        Parameters
+        tickers : list of ticker symbols
+        period  : history period, e.g. '1y', '2y', '5y'
+    
+        Returns
+        pd.DataFrame with dates as index and tickers as columns
+        """
+        with console.status(f"Fetching price history ({period})..."):
+            raw = yf.download(tickers, period=period, auto_adjust=True, progress=False)
+            if raw.empty:
+                console.print("No data returned.")
+                return pd.DataFrame()
+            
+            # Flatten MultiIndex columns if present (newer yfinance versions)
+            if isinstance(raw.columns, pd.MultiIndex):
+                hist = raw["Close"]
+                if isinstance(hist, pd.Series):
+                    hist = hist.to_frame(name=tickers[0])
+                else:
+                    if len(tickers) == 1:
+                        hist = raw[["Close"]].rename(columns={"Close": tickers[0]})
+                    else:
+                        hist = raw["Close"]
+
+        # Ensure column names are uppercase strings
+        hist.columns = [c[0].upper() if isinstance(c, tuple) else str(c).upper() for c in hist.columns]
+        return hist
+
+    def show_prices(self, tickers: list[str], period: str = "1y", save: str = None):
+        """
+        Fetch and display a price history chart for one or more tickers.
+        
+        Parameters
+        tickers : list of ticker symbols
+        period  : history period
+        save    : optional file path to save the chart as PNG
+        """
+        hist = self.get_price_history(tickers, period)
+        if hist.empty:
+            return
+        
+        show_price_chart_matplotlib(hist, tickers, save_path=save)

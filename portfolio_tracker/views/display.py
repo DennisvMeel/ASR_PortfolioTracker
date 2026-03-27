@@ -3,6 +3,8 @@ views/display.py
 View layer: all terminal output — tables, charts, and graphs.
 
 """
+import pandas as pd
+import matplotlib.pyplot as plt
 
 from rich.console import Console
 from rich.table import Table
@@ -115,3 +117,34 @@ def show_weights_table(label: str, weights: dict[str, float]):
         table.add_row(name, f"{w:.2%}")
 
     console.print(table)
+    
+def show_price_chart_matplotlib(hist: pd.DataFrame, tickers: list[str], 
+                                save_path: str = None):
+    """
+    Plot historical closing prices for one or more tickers.
+
+    Parameters
+    ----------
+    hist      : DataFrame with dates as index and tickers as columns
+    tickers   : list of ticker symbols to plot
+    save_path : optional file path to save the chart as PNG
+    """
+    fig, ax = plt.subplots(figsize=(12, 5))
+
+    for ticker in tickers:
+        if ticker in hist.columns:
+            ax.plot(hist.index, hist[ticker], label=ticker, linewidth=1.5)
+            
+    ax.set_title(f"Price History: {', '.join(tickers)}")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Price")
+    ax.legend()
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150)
+        console.print(f"Chart saved to {save_path}")
+    else:
+        plt.show()
+    plt.close(fig)
