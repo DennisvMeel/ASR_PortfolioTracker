@@ -68,6 +68,17 @@ def prices(tickers, period, save):
     """Show price history for one or more tickers."""
     controller.show_prices(list(tickers), period=period, save=save)
 
+# Historic risk-analysis
+@cli.command()
+@click.option("--period", "-p",
+              type=click.Choice(["1mo","3mo","6mo","1y","2y","5y"]),
+              default="1y", show_default=True,
+              help="History period for return estimation")
+def risk(period):
+    """Show risk contribution and Sharpe ratio per asset."""
+    controller.show_risk(period=period)
+    
+
 # Simulation Commands
 @cli.command()
 @click.option("--method", "-m",

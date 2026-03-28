@@ -21,7 +21,8 @@ from views.display import (
     show_price_chart_matplotlib,
     show_simulation_stats,
     show_simulation_chart,
-    show_portfolio_list
+    show_portfolio_list,
+    show_risk_table,
 )
 console = Console()
 
@@ -277,3 +278,33 @@ class PortfolioController:
         es = expected_shortfall(paths)
         show_simulation_stats(stats, initial_value, years, n_paths, es, method=method, dist=dist)
         show_simulation_chart(paths, initial_value, years, n_paths, save_path=save, method=method, dist=dist)
+    
+    def show_risk(self, period: str = "1y"):
+        """
+        Compute and display risk contribution and individual Sharpe ratios
+        for each asset in the portfolio.
+        
+        Note: uses current portfolio weights as a static approximation.
+        
+        Parameters
+        period : history period for return estimation
+        """
+        
+        self.refresh_prices()
+        tickers = [a.ticker for a in self.portfolio.assets]
+        if len(tickers) < 2:
+            console.print("Need at least 2 assets for risk analysis.")
+            return
+
+        hist = self.get_price_history(tickers, period=period)
+        if hist.empty:
+            return
+
+        # Compute daily log returns per asset
+        returns = hist.apply(lambda col: np.log(col / col.shift(1))).dropna()
+
+        weights = self.portfolio.asset_weights()
+        risk_contribs = self.portfolio.risk_contribution(returns)
+        individual_sharpes = self.portfolio.individual_sharpe(returns)
+
+        show_risk_table(weights, risk_contribs, individual_sharpes)

@@ -5,6 +5,8 @@ Model layer: stores asset data and performs all calculations.
 
 import json
 import os
+import pandas as pd
+import numpy as np
 from dataclasses import dataclass, asdict
 from typing import Optional
 
@@ -231,5 +233,62 @@ class Portfolio:
         if total == 0:
             return {k: 0.0 for k in totals}
         return {k: v / total for k, v in totals.items()}
+    
+    def risk_contribution(self, returns: pd.DataFrame) -> dict[str, float]:
+        """
+        Compute each asset's contribution to total portfolio volatility.
+        
+        Uses current portfolio weights as a static approximation.
+        Weights are assumed constant over the history period.
+
+        Risk contribution is calculated as:
+        RC_i = w_i * (Sigma * w)_i / sigma_portfolio
+        
+        Parameters
+        returns : DataFrame of daily log returns per asset
+        
+        Returns
+        dict mapping ticker-risk contribution
+        """
+        weights = self.asset_weights()
+    
+        # Only include tickers present in returns
+        common  = [t for t in weights if t in returns.columns]
+        w = np.array([weights[t] for t in common])
+
+        # Covariance matrix of asset returns
+        cov = returns[common].cov().values
+
+        # Portfolio volatility
+        portfolio_vol = np.sqrt(w @ cov @ w)
+
+        if portfolio_vol == 0:
+            return {t: 0.0 for t in common}
+
+        # Marginal and total risk contribution
+        marginal = cov @ w
+        rc = w * marginal
+        total_rc = rc.sum()
+
+        return {t: float(rc[i] / total_rc) for i, t in enumerate(common)}
+
+    def individual_sharpe(self, returns: pd.DataFrame) -> dict[str, float]:
+        """
+        Compute annualised Sharpe ratio for each asset individually.
+            
+        Parameters
+        returns : DataFrame of daily log returns per asset
+
+        Returns
+        dict mapping ticker-annualised Sharpe ratio
+        """
+        result = {}
+        for ticker in returns.columns:
+            r = returns[ticker].dropna()
+            if r.std() == 0:
+                result[ticker] = 0.0
+            else:
+                result[ticker] = float((r.mean() / r.std()) * np.sqrt(252))
+        return result
     
     

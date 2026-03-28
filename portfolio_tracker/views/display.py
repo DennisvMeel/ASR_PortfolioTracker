@@ -280,3 +280,33 @@ def show_simulation_chart(paths: np.ndarray, initial_value: float,
     else:
         plt.show()
     plt.close(fig)
+    
+def show_risk_table(weights: dict[str, float], risk_contributions: dict[str, float],
+                    sharpes: dict[str, float]):
+    """
+    Render a table showing weight, risk contribution and individual
+    Sharpe ratio for each asset.
+
+    Parameters
+    weights            : dict mapping ticker-portfolio weight
+    risk_contributions : dict mapping ticker-risk contribution
+    sharpes            : dict mapping ticker-individual Sharpe ratio
+    """
+    table = Table(
+        title="Risk Analysis by Asset",
+        box=box.ROUNDED,
+    )
+    table.add_column("Ticker")
+    table.add_column("Weight", justify="right")
+    table.add_column("Risk Contribution", justify="right")
+    table.add_column("Sharpe Ratio", justify="right")
+
+    for ticker in weights:
+        table.add_row(
+            ticker,
+            f"{weights.get(ticker, 0):.2%}",
+            f"{risk_contributions.get(ticker, 0):.2%}",
+            f"{sharpes.get(ticker, 0):.2f}",
+        )
+
+    console.print(table)
