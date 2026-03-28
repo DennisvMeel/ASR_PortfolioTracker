@@ -359,3 +359,64 @@ def show_distribution_test(results: dict, method: str):
 
     console.print(table)
     console.print(f"Recommendation: [bold]{results['recommendation']}[/bold]")
+    
+def show_optimal_weights(result: dict):
+    """
+    Render a table comparing current and optimal portfolio weights,
+    alongside a comparison of portfolio metrics.
+
+    Parameters
+    result : output from Portfolio.optimal_weights()
+    """
+    # Weights comparison table
+    table = Table(
+        title="Mean-Variance Optimization — Optimal Weights",
+        box=box.ROUNDED,
+    )
+    table.add_column("Ticker")
+    table.add_column("Current Weight", justify="right")
+    table.add_column("Optimal Weight", justify="right")
+    table.add_column("Change", justify="right")
+
+    for ticker in result["tickers"]:
+        current = result["current_weights"].get(ticker, 0)
+        optimal = result["optimal_weights"].get(ticker, 0)
+        change  = optimal - current
+        table.add_row(
+            ticker,
+            f"{current:.2%}",
+            f"{optimal:.2%}",
+            f"{change:+.2%}",
+        )
+
+    console.print(table)
+
+    # Metrics comparison table
+    metrics = Table(
+        title="Portfolio Metrics — Current vs Optimal",
+        box=box.ROUNDED,
+    )
+    metrics.add_column("Metric")
+    metrics.add_column("Current", justify="right")
+    metrics.add_column("Optimal", justify="right")
+
+    metrics.add_row(
+        "Annualised Return",
+        f"{result['cur_return']:.2%}",
+        f"{result['opt_return']:.2%}",
+    )
+    metrics.add_row(
+        "Annualised Volatility",
+        f"{result['cur_vol']:.2%}",
+        f"{result['opt_vol']:.2%}",
+    )
+    metrics.add_row(
+        "Sharpe Ratio",
+        f"{result['cur_sharpe']:.2f}",
+        f"{result['opt_sharpe']:.2f}",
+    )
+
+    console.print(metrics)
+    
+    if not result["converged"]:
+        console.print("Warning: optimisation did not converge.")

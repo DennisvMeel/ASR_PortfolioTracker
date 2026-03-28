@@ -135,6 +135,18 @@ def delete_portfolio(name):
 def test_dist(method, period):
     """Test which distribution best fits the model residuals."""
     controller.run_distribution_test(method=method, period=period)
+    
+# MV Optimization
+@cli.command()
+@click.option("--period", "-p",
+              type=click.Choice(["1mo","3mo","6mo","1y","2y","5y"]),
+              default="5y", show_default=True,
+              help="History period for return estimation")
+@click.option("--risk-free", "-r", default=0.0, show_default=True,
+              type=float, help="Annual risk-free rate, e.g. 0.04 for 4%")
+def optimize(period, risk_free):
+    """Find optimal portfolio weights using mean-variance optimization."""
+    controller.show_optimized_weights(period=period, risk_free=risk_free)
 
 # Entry point
 if __name__ == "__main__":

@@ -9,6 +9,8 @@ import pandas as pd
 import numpy as np
 from dataclasses import dataclass, asdict
 from typing import Optional
+from scipy.optimize import minimize
+
 
 
 @dataclass
@@ -290,5 +292,85 @@ class Portfolio:
             else:
                 result[ticker] = float((r.mean() / r.std()) * np.sqrt(252))
         return result
+    
+    def optimal_weights(self, returns: pd.DataFrame,
+                    risk_free: float = 0.0) -> dict:
+        """
+        Find the portfolio weights that maximise the Sharpe ratio,
+        subject to long-only constraints (no short selling).
+        
+        Uses scipy.optimize.minimize with the SLSQP method.
+
+        Parameters
+
+        returns   : DataFrame of daily log returns per asset
+        risk_free : annual risk-free rate, default 0.0
+
+        Returns
+        dict containing optimal weights, expected return,
+        volatility and Sharpe ratio
+        """
+
+        n = len(returns.columns)
+
+        def neg_sharpe(weights):
+            """Objective function — negative Sharpe ratio to minimise."""
+            port_return = np.dot(weights, returns.mean()) * 252
+            port_vol    = np.sqrt(
+                np.dot(weights, np.dot(returns.cov() * 252, weights))
+                )
+            if port_vol == 0:
+                return 0.0
+            
+            return -(port_return - risk_free) / port_vol
+
+        # Constraints: weights sum to 1
+        constraints = [{"type": "eq", "fun": lambda w: np.sum(w) - 1}]
+
+        # Bounds: each weight between 0 and 1 (long positions only)
+        bounds = [(0.0, 1.0)] * n
+
+        # Initial guess: equal weights
+        w0 = np.array([1.0 / n] * n)
+
+        result = minimize(
+            neg_sharpe,
+            w0,
+            method="SLSQP",
+            bounds=bounds,
+            constraints=constraints,
+            options={"ftol": 1e-9, "maxiter": 1000},
+        )
+
+        optimal_w = result.x
+        opt_return = float(np.dot(optimal_w, returns.mean()) * 252)
+        opt_vol    = float(np.sqrt(
+            np.dot(optimal_w, np.dot(returns.cov(), optimal_w))* 252
+            ))
+        opt_sharpe = float((opt_return - risk_free) / opt_vol) if opt_vol > 0 else 0.0
+
+        # Current portfolio metrics for comparison
+        current_weights = self.asset_weights()
+        tickers = returns.columns.tolist()
+        cw = np.array([current_weights.get(t, 0) for t in tickers])
+        
+        cur_return = float(np.dot(cw, returns.mean()) * 252)
+        cur_vol = float(np.sqrt(
+            np.dot(cw, np.dot(returns.cov() * 252, cw))
+            ))
+        cur_sharpe = float((cur_return - risk_free) / cur_vol) if cur_vol > 0 else 0.0
+
+        return {
+            "tickers"           : tickers,
+            "optimal_weights"   : {t: float(optimal_w[i]) for i, t in enumerate(tickers)},
+            "current_weights"   : current_weights,
+            "opt_return"        : opt_return,
+            "opt_vol"           : opt_vol,
+            "opt_sharpe"        : opt_sharpe,
+            "cur_return"        : cur_return,
+            "cur_vol"           : cur_vol,
+            "cur_sharpe"        : cur_sharpe,
+            "converged"         : result.success,
+            }
     
     

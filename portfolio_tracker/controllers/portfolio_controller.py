@@ -30,6 +30,7 @@ from views.display import (
     show_portfolio_list,
     show_risk_table,
     show_distribution_test,
+    show_optimal_weights
 )
 console = Console()
 
@@ -346,3 +347,28 @@ class PortfolioController:
 
         results = test_distribution(portfolio_returns, method=method)
         show_distribution_test(results, method=method)
+        
+    def show_optimized_weights(self, period: str = "5y",
+                             risk_free: float = 0.0):
+        """
+        Fetch historical returns and compute the optimal portfolio
+        weights that maximise the Sharpe ratio.
+
+        Parameters
+        period    : history period for return estimation
+        risk_free : annual risk-free rate, default 0.0
+        """
+        tickers = [a.ticker for a in self.portfolio.assets]
+        if len(tickers) < 2:
+            console.print("Need at least 2 assets for optimisation.")
+            return
+
+        hist = self.get_price_history(tickers, period=period)
+        if hist.empty:
+            return
+        
+        returns = hist.apply(lambda col: np.log(col / col.shift(1))).dropna()
+        
+        with console.status("Optimising portfolio weights..."):
+            result = self.portfolio.optimal_weights(returns, risk_free=risk_free)
+        show_optimal_weights(result)
