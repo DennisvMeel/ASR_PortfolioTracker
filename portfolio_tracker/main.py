@@ -8,14 +8,41 @@ from controllers.portfolio_controller import PortfolioController
 
 controller = PortfolioController()
 
+class OrderedGroup(click.Group):
+    def list_commands(self, ctx):
+        return list(self.commands)
 
-@click.group()
+@click.group(cls=OrderedGroup)
 def cli():
     """Portfolio Tracker — manage and analyse your investment portfolio."""
     pass
 
+# Portfolio Management
+@cli.command()
+def list_portfolios():
+    """List all saved portfolios."""
+    controller.list_portfolios()
+    
+@cli.command()
+@click.option("--name", "-n", required=True, help="Portfolio name")
+def new_portfolio(name):
+    """Create and switch to a new portfolio."""
+    controller.new_portfolio(name)
 
-# Asset management                                                    #
+@cli.command()
+@click.option("--name", "-n", required=True)
+def switch_portfolio(name):
+    """Switch to an existing portfolio."""
+    controller.switch_portfolio(name)
+
+@cli.command()
+@click.option("--name", "-n", required=True)
+def delete_portfolio(name):
+    """Delete a portfolio."""
+    controller.delete_portfolio(name)
+
+
+# Asset Management                                                    #
 @cli.command()
 @click.option("--ticker",         "-t", required=True,  help="Asset ticker, e.g. AAPL")
 @click.option("--sector",         "-s", required=True,  help="Sector, e.g. Technology")
@@ -55,7 +82,6 @@ def weights(by):
     """Show portfolio weights."""
     controller.show_weights(by=by)
     
-# Historic Graphs
 @cli.command()
 @click.argument("tickers", nargs=-1, required=True)
 @click.option("--period", "-p",
@@ -78,6 +104,20 @@ def risk(period):
     """Show risk contribution and Sharpe ratio per asset."""
     controller.show_risk(period=period)
     
+# Testing
+@cli.command()
+@click.option("--method", "-m",
+              type=click.Choice(["gbm", "garch"]),
+              default="gbm", show_default=True,
+              help="Simulation method to test residuals for")
+@click.option("--period", "-p",
+              type=click.Choice(["1mo","3mo","6mo","1y","2y","5y"]),
+              default="1y", show_default=True,
+              help="History period for return estimation")
+def test_dist(method, period):
+    """Test which distribution best fits the model residuals."""
+    controller.run_distribution_test(method=method, period=period)
+    
 # Simulation Commands
 @cli.command()
 @click.option("--method", "-m",
@@ -98,44 +138,6 @@ def simulate(method, dist, years, paths, save):
     """Run a Monte Carlo simulation on the current portfolio."""
     controller.run_simulation(method=method, dist=dist, years=years, n_paths=paths, save=save)
     
-# Portfolio Management
-@cli.command()
-@click.option("--name", "-n", required=True, help="Portfolio name")
-def new_portfolio(name):
-    """Create and switch to a new portfolio."""
-    controller.new_portfolio(name)
-
-@cli.command()
-@click.option("--name", "-n", required=True)
-def switch_portfolio(name):
-    """Switch to an existing portfolio."""
-    controller.switch_portfolio(name)
-
-@cli.command()
-def list_portfolios():
-    """List all saved portfolios."""
-    controller.list_portfolios()
-
-@cli.command()
-@click.option("--name", "-n", required=True)
-def delete_portfolio(name):
-    """Delete a portfolio."""
-    controller.delete_portfolio(name)
-    
-# Testing
-@cli.command()
-@click.option("--method", "-m",
-              type=click.Choice(["gbm", "garch"]),
-              default="gbm", show_default=True,
-              help="Simulation method to test residuals for")
-@click.option("--period", "-p",
-              type=click.Choice(["1mo","3mo","6mo","1y","2y","5y"]),
-              default="1y", show_default=True,
-              help="History period for return estimation")
-def test_dist(method, period):
-    """Test which distribution best fits the model residuals."""
-    controller.run_distribution_test(method=method, period=period)
-    
 # MV Optimization
 @cli.command()
 @click.option("--period", "-p",
@@ -145,7 +147,7 @@ def test_dist(method, period):
 @click.option("--risk-free", "-r", default=0.0, show_default=True,
               type=float, help="Annual risk-free rate, e.g. 0.04 for 4%")
 def optimize(period, risk_free):
-    """Find optimal portfolio weights using mean-variance optimization."""
+    """Find optimal weights using mean-variance optimization."""
     controller.show_optimized_weights(period=period, risk_free=risk_free)
 
 # Entry point
