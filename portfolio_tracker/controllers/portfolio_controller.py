@@ -13,7 +13,13 @@ import os
 from rich.console import Console
 
 from models.portfolio import Portfolio
-from models.simulation import run_gbm_simulation, run_garch_simulation, simulation_stats, expected_shortfall
+from models.simulation import (
+    run_gbm_simulation,
+    run_garch_simulation,
+    simulation_stats,
+    expected_shortfall,
+    test_distribution,
+)
 from views.display import (
     show_portfolio_table,
     show_summary,
@@ -23,6 +29,7 @@ from views.display import (
     show_simulation_chart,
     show_portfolio_list,
     show_risk_table,
+    show_distribution_test,
 )
 console = Console()
 
@@ -308,3 +315,34 @@ class PortfolioController:
         individual_sharpes = self.portfolio.individual_sharpe(returns)
 
         show_risk_table(weights, risk_contribs, individual_sharpes)
+        
+    def run_distribution_test(self, method: str = "gbm", period: str = "1y"):
+        """
+        Fetch historical returns, compute model residuals, and run
+        distribution tests to recommend the best shock distribution.
+        
+        Parameters
+        method : simulation method, 'gbm' or 'garch'
+        period : history period for return estimation
+        """
+        
+        self.refresh_prices()
+        tickers = [a.ticker for a in self.portfolio.assets]
+        if not tickers:
+            console.print("No assets in portfolio.")
+            return
+
+        hist = self.get_price_history(tickers, period=period)
+        if hist.empty:
+            return
+
+        # Compute weighted portfolio log returns
+        daily_returns = hist.apply(lambda col: np.log(col / col.shift(1))).dropna()
+        weights = self.portfolio.asset_weights()
+        w_series = pd.Series(weights)
+        common = daily_returns.columns.intersection(w_series.index)
+        w_norm = w_series[common] / w_series[common].sum()
+        portfolio_returns = (daily_returns[common] * w_norm).sum(axis=1)
+
+        results = test_distribution(portfolio_returns, method=method)
+        show_distribution_test(results, method=method)

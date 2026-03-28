@@ -78,7 +78,6 @@ def risk(period):
     """Show risk contribution and Sharpe ratio per asset."""
     controller.show_risk(period=period)
     
-
 # Simulation Commands
 @cli.command()
 @click.option("--method", "-m",
@@ -122,6 +121,20 @@ def list_portfolios():
 def delete_portfolio(name):
     """Delete a portfolio."""
     controller.delete_portfolio(name)
+    
+# Testing
+@cli.command()
+@click.option("--method", "-m",
+              type=click.Choice(["gbm", "garch"]),
+              default="gbm", show_default=True,
+              help="Simulation method to test residuals for")
+@click.option("--period", "-p",
+              type=click.Choice(["1mo","3mo","6mo","1y","2y","5y"]),
+              default="1y", show_default=True,
+              help="History period for return estimation")
+def test_dist(method, period):
+    """Test which distribution best fits the model residuals."""
+    controller.run_distribution_test(method=method, period=period)
 
 # Entry point
 if __name__ == "__main__":

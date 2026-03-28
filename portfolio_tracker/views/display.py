@@ -13,6 +13,7 @@ from rich.table import Table
 from rich import box
 from rich.panel import Panel
 from rich.text import Text
+from scipy import stats
 
 console = Console()
 
@@ -310,3 +311,51 @@ def show_risk_table(weights: dict[str, float], risk_contributions: dict[str, flo
         )
 
     console.print(table)
+
+def show_distribution_test(results: dict, method: str):
+    """
+    Render a table showing distribution test results and recommendation.
+
+    Parameters
+    results : output from test_distribution()
+    method  : simulation method used, 'gbm' or 'garch'
+    """
+    table = Table(
+        title=f"Distribution Analysis — {method.upper()} residuals",
+        box=box.ROUNDED,
+    )
+    table.add_column("Test")
+    table.add_column("Statistic", justify="right")
+    table.add_column("p-value",   justify="right")
+    table.add_column("Conclusion", justify="left")
+
+    def conclusion(pval):
+        return "Normal" if pval > 0.05 else "Non-normal"
+
+    table.add_row(
+        "Shapiro-Wilk",
+        f"{results['sw_stat']:.3f}",
+        f"{results['sw_pval']:.3f}",
+        conclusion(results['sw_pval']),
+    )
+    table.add_row(
+        "Jarque-Bera",
+        f"{results['jb_stat']:.3f}",
+        f"{results['jb_pval']:.3f}",
+        conclusion(results['jb_pval']),
+    )
+    table.add_row(
+        "Kolmogorov-Smirnov",
+        f"{results['ks_stat']:.3f}",
+        f"{results['ks_pval']:.3f}",
+        conclusion(results['ks_pval']),
+    )
+
+    # Separator for additional stats
+    table.add_section()
+    table.add_row("Skewness", f"{results['skewness']:.3f}", "", "")
+    table.add_row("Excess Kurtosis", f"{results['kurtosis']:.3f}", "", "")
+    table.add_row("Student-t df", f"{results['df']:.2f}", "", "")
+
+    console.print(table)
+    console.print(f"Recommendation: [bold]{results['recommendation']}[/bold]")

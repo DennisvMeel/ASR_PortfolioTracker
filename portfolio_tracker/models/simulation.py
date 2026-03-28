@@ -10,6 +10,7 @@ volatility estimated from historical data.
 import numpy as np
 import pandas as pd
 from arch import arch_model
+from scipy import stats
 from scipy.stats import t as student_t
 
 def draw_shocks(n: int, method: str = "normal", fitted_returns: pd.Series = None, df: float = None):
@@ -190,3 +191,67 @@ def expected_shortfall(paths: np.ndarray, confidence: float = 0.95) -> float:
     cutoff = np.percentile(final, (1 - confidence) * 100)
     tail   = final[final <= cutoff]
     return float(np.mean(tail))
+
+def test_distribution(returns: pd.Series, method: str = "gbm",) -> dict:
+    """
+    Test which distribution best fits the model residuals.
+
+    For GBM, residuals are the standardised returns.
+    For GARCH, residuals are the standardised innovations from the fitted GARCH(1,1) model.
+
+    Parameters
+    returns : daily log returns of the portfolio
+    method  : 'gbm' or 'garch'
+
+    Returns
+    dict containing test statistics, p-values, fitted df, and recommendation
+    """
+
+    if method == "garch":
+        # Fit GARCH and extract standardised residuals
+        scaled_returns = returns * 100
+        model  = arch_model(scaled_returns, vol="Garch", p=1, q=1, dist="normal")
+        result = model.fit(disp="off")
+        residuals = pd.Series(result.std_resid.dropna().values)
+    else:
+        # Standardise raw returns for GBM
+        residuals = (returns - returns.mean()) / returns.std()
+
+    # Shapiro-Wilk test (null: data is normally distributed)
+    sw_stat, sw_pval = stats.shapiro(residuals)
+
+    # Jarque-Bera test (null: data is normally distributed)
+    jb_stat, jb_pval = stats.jarque_bera(residuals)
+
+    # Kolmogorov-Smirnov test against normal distribution
+    ks_stat, ks_pval = stats.kstest(residuals, "norm")
+
+    # Fit Student-t distribution to get degrees of freedom
+    df, loc, scale = stats.t.fit(residuals, floc=0, fscale=1)
+
+    # Compute skewness and kurtosis
+    skewness = float(stats.skew(residuals))
+    kurtosis = float(stats.kurtosis(residuals))
+
+    # If all tests fail normality, recommend t or EDF based on df
+    normal = sw_pval > 0.05 and jb_pval > 0.05 and ks_pval > 0.05
+    if normal:
+        recommendation = "normal"
+    elif df < 10:
+        recommendation = "student-t"
+    else:
+        recommendation = "edf"
+
+    return {
+        "residuals"     : residuals,
+        "sw_stat"       : float(sw_stat),
+        "sw_pval"       : float(sw_pval),
+        "jb_stat"       : float(jb_stat),
+        "jb_pval"       : float(jb_pval),
+        "ks_stat"       : float(ks_stat),
+        "ks_pval"       : float(ks_pval),
+        "df"            : float(df),
+        "skewness"      : skewness,
+        "kurtosis"      : kurtosis,
+        "recommendation": recommendation,
+    }
