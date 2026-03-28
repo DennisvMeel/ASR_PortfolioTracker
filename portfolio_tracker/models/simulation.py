@@ -10,6 +10,19 @@ volatility estimated from historical data.
 import numpy as np
 import pandas as pd
 from arch import arch_model
+from scipy.stats import t as student_t
+
+def draw_shocks(n: int, method: str = "normal", fitted_returns: pd.Series = None, df: float = None):
+    if method == "normal":
+        return np.random.standard_normal(n)
+    elif method == "student-t":
+        raw = np.random.standard_t(df, size=n)
+        return raw / np.sqrt(df / (df - 2))
+    elif method == "edf":
+        std_returns = (fitted_returns - fitted_returns.mean()) / fitted_returns.std()
+        return np.random.choice(std_returns.values, size=n, replace=True)
+    else:
+        raise ValueError(f"Unknown distribution: {method}")
 
 def run_gbm_simulation(
     returns: pd.Series,
@@ -17,6 +30,7 @@ def run_gbm_simulation(
     years: int = 15,
     n_paths: int = 100_000,
     trading_days: int = 252,
+    dist: str = "normal",
 ) -> np.ndarray:
     """
     Simulate future portfolio value using Geometric Brownian Motion.
@@ -45,9 +59,15 @@ def run_gbm_simulation(
     # Simulate paths step by step, drawing fresh shocks each day
     paths = np.empty((n_steps + 1, n_paths))
     paths[0] = initial_value
+    
+    # Fit df once before the loop (if applicable)
+    df = None
+    if dist == "student-t":
+        standardised = (returns - returns.mean()) / returns.std()
+        df, _, _ = student_t.fit(standardised, floc=0, fscale=1)
 
     for t in range(1, n_steps + 1):
-        Z = np.random.standard_normal(n_paths)
+        Z = draw_shocks(n_paths, method=dist, fitted_returns=returns, df=df)
         paths[t] = paths[t - 1] * np.exp((mu - 0.5 * sigma ** 2) + sigma * Z)
 
     return paths
@@ -58,13 +78,14 @@ def run_garch_simulation(
     years: int = 15,
     n_paths: int = 100_000,
     trading_days: int = 252,
+    dist: str = "normal",
 ) -> np.ndarray:
     """
     Simulate future portfolio value using GARCH(1,1).
 
     The variance update follows:
-        sigma(t+1)^2 = omega + alpha * X(t)^2 + beta * sigma(t)^2
-        where X(t) is the simulated return at time t.
+        sigma(t+1)^2 = omega + alpha * r(t)^2 + beta * sigma(t)^2
+        where r(t) is the simulated return at time t.
 
     Parameters
     returns         : daily log returns of the portfolio (historical)
@@ -110,14 +131,20 @@ def run_garch_simulation(
     
     # Initialise with the last observed scaled return
     r = returns.iloc[-1] * 100
+    
+    # Fit df once before the loop
+    df = None
+    if dist == "student-t":
+        standardised = (returns - returns.mean()) / returns.std()
+        df, _, _ = student_t.fit(standardised, floc=0, fscale=1)
 
     for t in range(1, n_steps + 1):
         
         # Update variance using previous sigma and return
         variances = omega + alpha * (r - mu)**2 + beta * variances
         
-        # Draw random shocks
-        Z = np.random.standard_normal(n_paths)
+        # Draw random shocks from specified distribution
+        Z = draw_shocks(n_paths, method=dist, fitted_returns=returns, df=df)
 
         # Simulate return using updated variance
         sigma = np.sqrt(variances)

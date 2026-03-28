@@ -216,7 +216,7 @@ class PortfolioController:
         
         show_price_chart_matplotlib(hist, tickers, save_path=save)
         
-    def run_simulation(self, method : str = "gbm", years: int = 15, n_paths: int = 100_000, save: str = None):
+    def run_simulation(self, method : str = "gbm", dist : str = "normal", years: int = 15, n_paths: int = 100_000, save: str = None):
         """
         Run a Monte Carlo simulation on the current portfolio.
         
@@ -225,6 +225,7 @@ class PortfolioController:
 
         Parameters
         method  : simulation method, either 'gbm' or 'garch'
+        dist    : distribution used for drawing shocks, either 'normal', 'student-t' or 'edf'
         years   : simulation horizon in years
         n_paths : number of simulated paths
         save    : optional file path to save the chart as PNG
@@ -256,15 +257,15 @@ class PortfolioController:
         with console.status("Simulating..."):
             if method == "garch":
                 paths = run_garch_simulation(portfolio_returns, initial_value,
-                                             years=years, n_paths=n_paths)
+                                             years=years, n_paths=n_paths, dist=dist)
             elif method == "gbm":
                 paths = run_gbm_simulation(portfolio_returns, initial_value,
-                                        years=years, n_paths=n_paths)
+                                        years=years, n_paths=n_paths, dist=dist)
             else:
                 console.print(f"Method is not recognized")
 
             
         stats = simulation_stats(paths)
         es = expected_shortfall(paths)
-        show_simulation_stats(stats, initial_value, years, n_paths, es, method=method)
-        show_simulation_chart(paths, initial_value, years, n_paths, save_path=save, method=method)
+        show_simulation_stats(stats, initial_value, years, n_paths, es, method=method, dist=dist)
+        show_simulation_chart(paths, initial_value, years, n_paths, save_path=save, method=method, dist=dist)

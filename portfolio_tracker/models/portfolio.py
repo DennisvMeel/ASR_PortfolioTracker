@@ -15,7 +15,6 @@ class Asset:
     Represents a single asset in the portfolio.
     
     Attributes
-    ----------
     ticker          : stock ticker symbol
     sector          : sector the asset belongs to
     asset_class     : asset class

@@ -72,15 +72,19 @@ def prices(tickers, period, save):
               type=click.Choice(["gbm", "garch"]),
               default="gbm", show_default=True,
               help="Simulation method: gbm or garch")
+@click.option("--dist", "-d",
+              type=click.Choice(["normal", "student-t", "edf"]),
+              default="normal", show_default=True,
+              help="Simulation distribution: normal, student-t or edf")
 @click.option("--years",  "-y", default=15,      show_default=True, type=int,
               help="Simulation horizon in years")
 @click.option("--paths",  "-n", default=100_000, show_default=True, type=int,
               help="Number of simulated paths")
 @click.option("--save",   default=None, metavar="FILE",
               help="Save simulation chart to PNG")
-def simulate(method, years, paths, save):
+def simulate(method, dist, years, paths, save):
     """Run a Monte Carlo simulation on the current portfolio."""
-    controller.run_simulation(method=method, years=years, n_paths=paths, save=save)
+    controller.run_simulation(method=method, dist=dist, years=years, n_paths=paths, save=save)
     
 # Portfolio Management
 @cli.command()

@@ -147,7 +147,6 @@ def show_price_chart_matplotlib(hist: pd.DataFrame, tickers: list[str],
     Plot historical closing prices for one or more tickers.
 
     Parameters
-    ----------
     hist      : DataFrame with dates as index and tickers as columns
     tickers   : list of ticker symbols to plot
     save_path : optional file path to save the chart as PNG
@@ -173,18 +172,22 @@ def show_price_chart_matplotlib(hist: pd.DataFrame, tickers: list[str],
     plt.close(fig)
     
 def show_simulation_stats(stats: dict, initial_value: float, years: int, 
-                          n_paths: int, es: float = None, method: str = "gbm"):
+                          n_paths: int, es: float = None, method: str = "gbm",
+                          dist: str = "normal"):
     """
     Render a table showing Monte Carlo simulation summary statistics.
 
     Parameters
-    stats         : output from simulation_stats()
-    initial_value : starting portfolio value
-    years         : simulation horizon in years
-    n_paths       : number of simulated paths
+    stats           : output from simulation_stats()
+    initial_value   : starting portfolio value
+    years           : simulation horizon in years
+    n_paths         : number of simulated paths
+    es              : Expected Shortfall calculated as finish
+    method          : model used for simulation
+    dist            : distribution used for simulation 
     """
     table = Table(
-        title=f"Monte Carlo Simulation - {method.upper()} ({years}-year horizon, {n_paths} paths)",
+        title=f"Monte Carlo Simulation - {method.upper()} ({dist}) ({years}-year horizon, {n_paths} paths)",
         box=box.ROUNDED,
     )
     table.add_column("Metric")
@@ -212,16 +215,18 @@ def show_simulation_stats(stats: dict, initial_value: float, years: int,
     
 def show_simulation_chart(paths: np.ndarray, initial_value: float,
                           years: int, n_paths: int, save_path: str = None,
-                          method: str = "gbm"):
+                          method: str = "gbm", dist: str = "normal"):
     """
     Plot a sample of simulation paths with percentile bands.
 
     Parameters
-    paths         : simulation output from run_monte_carlo
-    initial_value : starting portfolio value
-    years         : simulation horizon in years
-    n_paths       : number of simulated paths
-    save_path     : optional file path to save the chart as PNG
+    paths           : simulation output from run_monte_carlo
+    initial_value   : starting portfolio value
+    years           : simulation horizon in years
+    n_paths         : number of simulated paths
+    save_path       : optional file path to save the chart as PNG
+    method          : model used for simulation
+    dist            : distribution used for simulation 
     """
     fig, ax = plt.subplots(figsize=(13, 6))
 
@@ -265,7 +270,7 @@ def show_simulation_chart(paths: np.ndarray, initial_value: float,
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"€{v:,.0f}"))
     ax.set_xlabel("Years")
     ax.set_ylabel("Portfolio Value")
-    ax.set_title(f"Monte Carlo Simulation — {method.upper()} ({years}-Year Horizon, {n_paths} paths)")
+    ax.set_title(f"Monte Carlo Simulation — {method.upper()} ({dist}) ({years}-Year Horizon, {n_paths} paths)")
     ax.legend()
     fig.tight_layout()
 
