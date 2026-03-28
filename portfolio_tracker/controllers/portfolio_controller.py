@@ -69,10 +69,18 @@ class PortfolioController:
         console.print(f"Added {ticker} — {quantity} units @ "
                       f"€{purchase_price:.2f} (current price: €{current_price:.2f})")
 
-    def remove_asset(self, ticker: str):
-        """Remove an asset from the portfolio by ticker."""
-        if self.portfolio.remove_asset(ticker):
-            console.print(f"Removed {ticker.upper()} from portfolio.")
+    def remove_asset(self, ticker: str, quantity: float = None):
+        """Remove or reduce an asset from the portfolio by ticker."""
+        result = self.portfolio.remove_asset(ticker, quantity)
+        
+        if result is None:
+            console.print(f"Cannot remove {quantity} units of {ticker.upper()} "
+                      f"— you only hold {self.portfolio.get_asset(ticker.upper()).quantity} units.")
+        elif result:
+            if quantity:
+                console.print(f"Removed {quantity} units of {ticker.upper()} from portfolio.")
+            else:
+                console.print(f"Removed {ticker.upper()} from portfolio entirely.")
         else:
             console.print(f"Ticker {ticker.upper()} not found in portfolio.")
 

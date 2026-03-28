@@ -142,18 +142,33 @@ class Portfolio:
         self.save()
         return asset
 
-    def remove_asset(self, ticker: str) -> bool:
+    def remove_asset(self, ticker: str, quantity: float = None) -> bool:
         """
-        Remove an asset by ticker.
-        Returns True if the asset was found and removed, False otherwise.
+        Remove an asset or reduce its quantity
+        
+        If quantity is specified, reduces the position by that amount.
+        If quantity is not specified or equals the total held, removes
+        the asset entirely.
         """
         ticker = ticker.upper() # Ensure that it is uppercase
-        before = len(self.assets)
-        self.assets = [a for a in self.assets if a.ticker != ticker]
-        if len(self.assets) < before:
-            self.save()
-            return True
-        return False
+        asset = self.get_asset(ticker)
+
+        # Check if asset is present
+        if asset is None:
+            return False
+        
+        # Prevent removing more than is held
+        if quantity is not None and quantity > asset.quantity:
+            return None
+    
+        # If no quantity specified or quantity = held, remove entirely
+        if quantity is None or quantity == asset.quantity:
+            self.assets = [a for a in self.assets if a.ticker != ticker]
+        else:
+            asset.quantity -= quantity
+    
+        self.save()
+        return True
 
     def get_asset(self, ticker: str) -> Optional[Asset]:
         """Return the Asset object for a given ticker, or None if not found."""

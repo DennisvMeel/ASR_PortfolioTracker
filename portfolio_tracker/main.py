@@ -28,10 +28,12 @@ def add(ticker, sector, asset_class, quantity, purchase_price):
 
 
 @cli.command()
-@click.option("--ticker", "-t", required=True, help="Ticker to remove")
-def remove(ticker):
-    """Remove an asset from the portfolio."""
-    controller.remove_asset(ticker)
+@click.option("--ticker",   "-t", required=True, help="Ticker to remove")
+@click.option("--quantity", "-q", default=None,  type=float,
+              help="Number of units to remove (omit to remove entirely)")
+def remove(ticker, quantity):
+    """Remove an asset or reduce its quantity."""
+    controller.remove_asset(ticker, quantity)
 
 
 # Portfolio view                                                      #
