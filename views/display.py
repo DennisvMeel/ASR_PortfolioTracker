@@ -1,7 +1,6 @@
 """
 views/display.py
 View layer: all terminal output — tables, charts, and graphs.
-
 """
 import numpy as np
 import pandas as pd

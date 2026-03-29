@@ -50,12 +50,22 @@ class PortfolioController:
         active = Portfolio.get_active_name()
         self.portfolio = Portfolio(name=active)
 
-    # Asset management
+    # Asset Management
     def add_asset(self, ticker: str, sector: str, asset_class: str,
                   quantity: float, purchase_price: float):
         """
         Validate the ticker via yfinance, fetch its current price,
         then add it to the portfolio model.
+        
+        If the ticker already exists, quantity is increased and the
+        purchase price is updated to the weighted average.
+        
+        Parameters
+        ticker         : asset ticker symbol, e.g. 'AAPL'
+        sector         : sector label, e.g. 'Technology'
+        asset_class    : asset class label, e.g. 'Equity'
+        quantity       : number of units purchased
+        purchase_price : price per unit at time of purchase
         """
         ticker = ticker.upper()
 
@@ -81,7 +91,13 @@ class PortfolioController:
                       f"€{purchase_price:.2f} (current price: €{current_price:.2f})")
 
     def remove_asset(self, ticker: str, quantity: float = None):
-        """Remove or reduce an asset from the portfolio by ticker."""
+        """
+        Remove an asset or reduce its quantity in the portfolio.
+
+        Parameters
+        ticker   : ticker symbol of the asset to remove
+        quantity : number of units to remove. If omitted, removes the asset entirely
+        """
         result = self.portfolio.remove_asset(ticker, quantity)
         
         if result is None:
@@ -95,9 +111,12 @@ class PortfolioController:
         else:
             console.print(f"Ticker {ticker.upper()} not found in portfolio.")
 
-    # Price refreshing
+    # Price Refreshing
     def refresh_prices(self):
-        """Get current prices for all tickers via yfinance."""
+        """
+        Fetch and update current prices for all assets via yfinance.
+        Skips silently if the portfolio is empty.
+        """
         tickers = [a.ticker for a in self.portfolio.assets]
         if not tickers:
             console.print("No assets in portfolio.")
@@ -123,9 +142,14 @@ class PortfolioController:
 
         self.portfolio.update_prices(prices)
         
-    # Portfolio edit commands
+    # Portfolio Edit Commands
     def new_portfolio(self, name: str):
-        """Create a new portfolio and switch to it."""
+        """
+        Create a new portfolio and switch to it.
+
+        Parameters
+        name : name for the new portfolio
+        """
         if name in Portfolio.list_portfolios():
             console.print(f"Portfolio '{name}' already exists, please choose a new name.")
             return
@@ -135,7 +159,12 @@ class PortfolioController:
         console.print(f"Created and switched to portfolio '{name}'")
 
     def switch_portfolio(self, name: str):
-        """Switch to an existing portfolio."""
+        """
+        Switch to an existing portfolio by name.
+
+        Parameters
+        name : name of the portfolio to switch to
+        """
         if name not in Portfolio.list_portfolios():
             console.print(f"Portfolio '{name}' does not exist.")
             return
@@ -150,7 +179,12 @@ class PortfolioController:
         show_portfolio_list(portfolios, active)
 
     def delete_portfolio(self, name: str):
-        """Delete a portfolio by name."""
+        """
+        Delete a portfolio by name. The active portfolio cannot be deleted.
+
+        Parameters
+        name : name of the portfolio to delete
+        """
         if name not in Portfolio.list_portfolios():
             console.print(f"Portfolio '{name}' does not exist.")
             return
@@ -160,12 +194,13 @@ class PortfolioController:
         os.remove(f"data/{name}.json")
         console.print(f"Deleted portfolio '{name}'")
 
-    # View commands
-
+    # View Commands
     def show_portfolio(self, refresh: bool = True):
         """
         Display the full portfolio table and summary panel.
-        Optionally refreshes live prices before rendering.
+
+        Parameters
+        refresh : if True, fetches live prices before rendering. Default True
         """
         if refresh:
             self.refresh_prices()
@@ -236,7 +271,15 @@ class PortfolioController:
         show_price_chart_matplotlib(hist, tickers, save_path=save)
         
     def _weighted_portfolio_returns(self, hist: pd.DataFrame) -> pd.Series:
-        """Compute daily weighted log returns for the current portfolio."""
+        """
+        Compute daily weighted log returns for the current portfolio.
+
+        Parameters
+        hist : DataFrame of historical closing prices per ticker
+
+        Returns
+        pd.Series of daily weighted portfolio log returns
+        """
         weights = self.portfolio.asset_weights()
         daily_returns = hist.apply(lambda col: np.log(col / col.shift(1))).dropna()
         w_series = pd.Series(weights)
@@ -248,16 +291,17 @@ class PortfolioController:
         """
         Run a Monte Carlo simulation on the current portfolio.
         
-        Fetches 5 years of price history, computes weighted portfolio
+        Fetches number of years of price history, computes weighted portfolio
         returns, and simulates future portfolio value over the given horizon.
 
         Parameters
-        method  : simulation method, either 'gbm' or 'garch'
+        method  : simulation method, either 'gbm', 'garch', 'regime'
         dist    : distribution used for drawing shocks, either 'normal', 'student-t' or 'edf'
         years   : simulation horizon in years
         n_paths : number of simulated paths
         save    : optional file path to save the chart as PNG
         """
+
         self.refresh_prices()
         tickers = [a.ticker for a in self.portfolio.assets]
         if not tickers:
@@ -355,7 +399,9 @@ class PortfolioController:
         """
         Fetch historical returns and compute the optimal portfolio
         weights that maximise the Sharpe ratio.
-
+        
+        Requires at least 2 assets.
+        
         Parameters
         period    : history period for return estimation
         risk_free : annual risk-free rate, default 0.0
@@ -379,11 +425,12 @@ class PortfolioController:
         """
         Fetch historical returns and display a pairwise correlation heatmap.
         
+        Requires at least 2 assets.
+
         Parameters
         period : history period for return estimation
         save   : optional file path to save the chart as PNG
         """
-        
         tickers = [a.ticker for a in self.portfolio.assets]
         if len(tickers) < 2:
             console.print("Need at least 2 assets for heatmap.")

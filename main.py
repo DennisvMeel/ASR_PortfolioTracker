@@ -63,7 +63,7 @@ def remove(ticker, quantity):
     controller.remove_asset(ticker, quantity)
 
 
-# Portfolio view                                                      #
+# Portfolio View                                                      #
 @cli.command()
 @click.option("--no-refresh", is_flag=True, default=False,
               help="Skip live price refresh (use cached prices)")
@@ -94,7 +94,7 @@ def prices(tickers, period, save):
     """Show price history for one or more tickers."""
     controller.show_prices(list(tickers), period=period, save=save)
 
-# Historic risk-analysis
+# Historic Risk-Analysis
 @cli.command()
 @click.option("--period", "-p",
               type=click.Choice(["1mo","3mo","6mo","1y","2y","5y"]),
@@ -129,7 +129,7 @@ def test_dist(method, period):
     """Test which distribution best fits the model residuals."""
     controller.run_distribution_test(method=method, period=period)
     
-# Simulation Commands
+# Simulation
 @cli.command()
 @click.option("--method", "-m",
               type=click.Choice(["gbm", "garch", "regime"]),

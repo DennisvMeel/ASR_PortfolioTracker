@@ -11,8 +11,6 @@ from dataclasses import dataclass, asdict
 from typing import Optional
 from scipy.optimize import minimize
 
-
-
 @dataclass
 class Asset:
     """

@@ -1,10 +1,9 @@
 """
 models/simulation.py
-Monte Carlo simulation: 100,000 paths over 15 years using GBM.
-
-Simulates future portfolio value using Geometric Brownian Motion,
-which assumes log-normally distributed returns with constant drift and
-volatility estimated from historical data.
+Monte Carlo simulation module supporting three methods: Geometric
+Brownian Motion (GBM), GARCH(1,1), and Hidden Markov Model regime-
+switching. Each method supports configurable shock distributions
+(normal, Student-t, EDF) and a configurable simulation horizon.
 """
 
 import numpy as np
@@ -23,6 +22,18 @@ warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
 warnings.filterwarnings("ignore", message="Model is not converging*")
 
 def draw_shocks(n: int, method: str = "normal", fitted_returns: pd.Series = None, df: float = None):
+    """
+    Draw n random shocks from the specified distribution.
+    
+    Parameters
+    n              : number of shocks to draw
+    method         : 'normal', 'student-t', or 'edf'
+    fitted_returns : historical returns, required when method is 'edf'
+    df             : degrees of freedom, required when method is 'student-t'
+
+    Returns
+    np.ndarray of shape (n,)
+    """
     if method == "normal":
         return np.random.standard_normal(n)
     elif method == "student-t":
@@ -278,7 +289,7 @@ def expected_shortfall(paths: np.ndarray, confidence: float = 0.95) -> float:
     Compute Expected Shortfall (ES) at the given confidence level.
 
     Parameters
-    paths       : simulation output from run_monte_carlo
+    paths       : simulation output from run_*_simulation
     confidence  : confidence level, default 0.95
 
     Returns
