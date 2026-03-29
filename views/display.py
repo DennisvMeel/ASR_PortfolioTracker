@@ -12,7 +12,8 @@ from rich.table import Table
 from rich import box
 from rich.panel import Panel
 from rich.text import Text
-from scipy import stats
+
+plt.ioff()  # disable interactive mode
 
 console = Console()
 
@@ -163,14 +164,13 @@ def show_price_chart_matplotlib(hist: pd.DataFrame, tickers: list[str],
     ax.grid(alpha=0.3)
     fig.tight_layout()
     
-    try:
-        if save_path:
-            plt.savefig(save_path, dpi=150)
-            console.print(f"Heatmap saved to {save_path}")
-        else:
-            plt.show()
-    finally:
-        plt.close(fig)
+    if save_path:
+        plt.savefig(save_path, dpi=150)
+        console.print(f"Chart saved to {save_path}")
+    else:
+        plt.show()
+        
+    plt.close(fig)
     
 def show_simulation_stats(stats: dict, initial_value: float, years: int, 
                           n_paths: int, es: float = None, method: str = "gbm",
@@ -221,7 +221,7 @@ def show_simulation_chart(paths: np.ndarray, initial_value: float,
     Plot a sample of simulation paths with percentile bands.
 
     Parameters
-    paths           : simulation output from run_monte_carlo
+    paths           : simulation output from run_*_simulation
     initial_value   : starting portfolio value
     years           : simulation horizon in years
     n_paths         : number of simulated paths
@@ -275,14 +275,13 @@ def show_simulation_chart(paths: np.ndarray, initial_value: float,
     ax.legend()
     fig.tight_layout()
         
-    try:
-        if save_path:
-            plt.savefig(save_path, dpi=150)
-            console.print(f"Heatmap saved to {save_path}")
-        else:
-            plt.show()
-    finally:
-        plt.close(fig)
+    if save_path:
+        plt.savefig(save_path, dpi=150)
+        console.print(f"Chart saved to {save_path}")
+    else:
+        plt.show()
+
+    plt.close(fig)
     
 def show_risk_table(weights: dict[str, float], risk_contributions: dict[str, float],
                     sharpes: dict[str, float]):
@@ -452,11 +451,10 @@ def show_correlation_heatmap(returns: pd.DataFrame, save_path: str = None):
     ax.set_title("Asset Return Correlations")
     fig.tight_layout()
     
-    try:
-        if save_path:
-            plt.savefig(save_path, dpi=150)
-            console.print(f"Heatmap saved to {save_path}")
-        else:
-            plt.show()
-    finally:
-        plt.close(fig)
+    if save_path:
+        plt.savefig(save_path, dpi=150)
+        console.print(f"Heatmap saved to {save_path}")
+    else:
+        plt.show()
+        
+    plt.close(fig)
