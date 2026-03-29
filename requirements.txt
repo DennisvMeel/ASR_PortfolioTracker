@@ -1,0 +1,25 @@
+# Portfolio Tracker — Python dependencies
+# Install with: pip install -r requirements.txt
+
+# CLI
+click>=8.1
+
+# Data & numerics
+numpy>=1.26
+pandas>=2.1
+scipy>=1.11
+
+# Market data
+yfinance>=0.2.36
+
+# Volatility modelling
+arch>=6.3
+
+# Hidden Markov Model (regime-switching simulation)
+hmmlearn>=0.3.2
+
+# Terminal output
+rich>=13.7
+
+# Plotting
+matplotlib>=3.8
