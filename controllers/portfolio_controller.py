@@ -301,6 +301,9 @@ class PortfolioController:
         n_paths : number of simulated paths
         save    : optional file path to save the chart as PNG
         """
+        if method == "regime" and dist != "normal":
+            console.print("Regime simulation only supports the normal distribution.")
+            return
 
         self.refresh_prices()
         tickers = [a.ticker for a in self.portfolio.assets]
