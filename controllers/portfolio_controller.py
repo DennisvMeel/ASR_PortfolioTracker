@@ -234,6 +234,15 @@ class PortfolioController:
         
         show_price_chart_matplotlib(hist, tickers, save_path=save)
         
+    def _weighted_portfolio_returns(self, hist: pd.DataFrame) -> pd.Series:
+        """Compute daily weighted log returns for the current portfolio."""
+        weights = self.portfolio.asset_weights()
+        daily_returns = hist.apply(lambda col: np.log(col / col.shift(1))).dropna()
+        w_series = pd.Series(weights)
+        common = daily_returns.columns.intersection(w_series.index)
+        w_norm = w_series[common] / w_series[common].sum()
+        return (daily_returns[common] * w_norm).sum(axis=1)
+        
     def run_simulation(self, method : str = "gbm", dist : str = "normal", years: int = 15, n_paths: int = 100_000, save: str = None):
         """
         Run a Monte Carlo simulation on the current portfolio.
@@ -254,21 +263,14 @@ class PortfolioController:
             console.print("No assets to simulate.")
             return
 
-        # Build portfolio weights
-        weights = self.portfolio.asset_weights()
-
         # Fetch 5 years of history for return estimation
         hist = self.get_price_history(tickers, period="5y")
         if hist.empty:
             return
 
         # Compute daily weighted portfolio log returns
-        daily_returns = hist.apply(lambda col: np.log(col / col.shift(1))).dropna()
-        w_series = pd.Series(weights)
-        common = daily_returns.columns.intersection(w_series.index)
-        w_norm = w_series[common] / w_series[common].sum()
-        portfolio_returns = (daily_returns[common] * w_norm).sum(axis=1)
-
+        portfolio_returns = self._weighted_portfolio_returns(hist)
+        
         initial_value = self.portfolio.total_value
         console.print(f"Running {n_paths:,} Monte Carlo paths over {years} years...")
 
@@ -341,14 +343,9 @@ class PortfolioController:
         if hist.empty:
             return
 
-        # Compute weighted portfolio log returns
-        daily_returns = hist.apply(lambda col: np.log(col / col.shift(1))).dropna()
-        weights = self.portfolio.asset_weights()
-        w_series = pd.Series(weights)
-        common = daily_returns.columns.intersection(w_series.index)
-        w_norm = w_series[common] / w_series[common].sum()
-        portfolio_returns = (daily_returns[common] * w_norm).sum(axis=1)
-
+        # Compute daily weighted portfolio log returns
+        portfolio_returns = self._weighted_portfolio_returns(hist)
+        
         results = test_distribution(portfolio_returns, method=method)
         show_distribution_test(results, method=method)
         
