@@ -31,7 +31,8 @@ from views.display import (
     show_portfolio_list,
     show_risk_table,
     show_distribution_test,
-    show_optimal_weights
+    show_optimal_weights,
+    show_correlation_heatmap,
 )
 console = Console()
 
@@ -373,3 +374,24 @@ class PortfolioController:
         with console.status("Optimising portfolio weights..."):
             result = self.portfolio.optimal_weights(returns, risk_free=risk_free)
         show_optimal_weights(result)
+        
+    def show_correlation_heatmap(self, period: str = "1y", save: str = None):
+        """
+        Fetch historical returns and display a pairwise correlation heatmap.
+        
+        Parameters
+        period : history period for return estimation
+        save   : optional file path to save the chart as PNG
+        """
+        
+        tickers = [a.ticker for a in self.portfolio.assets]
+        if len(tickers) < 2:
+            console.print("Need at least 2 assets for heatmap.")
+            return
+
+        hist = self.get_price_history(tickers, period=period)
+        if hist.empty:
+            return
+        
+        returns = hist.apply(lambda col: np.log(col / col.shift(1))).dropna()
+        show_correlation_heatmap(returns, save_path=save)

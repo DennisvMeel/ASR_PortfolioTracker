@@ -420,3 +420,39 @@ def show_optimal_weights(result: dict):
     
     if not result["converged"]:
         console.print("Warning: optimisation did not converge.")
+
+def show_correlation_heatmap(returns: pd.DataFrame, save_path: str = None):
+    """
+    Plot a correlation heatmap for asset returns.
+
+    Parameters
+    returns   : DataFrame of daily log returns per asset
+    save_path : optional file path to save the chart as PNG
+    """
+    corr = returns.corr()
+
+    fig, ax = plt.subplots(figsize=(max(6, len(corr) * 1.2), max(5, len(corr) * 1.0)))
+
+    im = ax.imshow(corr.values, vmin=-1, vmax=1, cmap="RdYlGn")
+    fig.colorbar(im, ax=ax, fraction=0.05)
+
+    tickers = corr.columns.tolist()
+    ax.set_xticks(range(len(tickers)))
+    ax.set_yticks(range(len(tickers)))
+    ax.set_xticklabels(tickers, rotation=45, ha="right")
+    ax.set_yticklabels(tickers)
+
+    for i in range(len(tickers)):
+        for j in range(len(tickers)):
+            ax.text(j, i, f"{corr.values[i, j]:.2f}",
+                    ha="center", va="center", fontsize=10)
+
+    ax.set_title("Asset Return Correlations")
+    fig.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150)
+        console.print(f"Heatmap saved to {save_path}")
+    else:
+        plt.show()
+    plt.close(fig)

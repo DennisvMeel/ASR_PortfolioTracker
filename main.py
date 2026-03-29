@@ -104,6 +104,17 @@ def risk(period):
     """Show risk contribution and Sharpe ratio per asset."""
     controller.show_risk(period=period)
     
+@cli.command()
+@click.option("--period", "-p",
+              type=click.Choice(["1mo", "3mo", "6mo", "1y", "2y", "5y"]),
+              default="1y", show_default=True,
+              help="History period for return estimation")
+@click.option("--save", default=None, metavar="FILE",
+              help="Save heatmap to a PNG file instead of showing it")
+def heatmap(period, save):
+    """Show a pairwise correlation heatmap for all assets."""
+    controller.show_correlation_heatmap(period=period, save=save)
+    
 # Testing
 @cli.command()
 @click.option("--method", "-m",
