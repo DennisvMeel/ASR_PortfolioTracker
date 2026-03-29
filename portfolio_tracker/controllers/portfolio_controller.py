@@ -16,6 +16,7 @@ from models.portfolio import Portfolio
 from models.simulation import (
     run_gbm_simulation,
     run_garch_simulation,
+    run_regime_simulation,
     simulation_stats,
     expected_shortfall,
     test_distribution,
@@ -278,6 +279,9 @@ class PortfolioController:
             elif method == "gbm":
                 paths = run_gbm_simulation(portfolio_returns, initial_value,
                                         years=years, n_paths=n_paths, dist=dist)
+            elif method == "regime":
+                paths = run_regime_simulation(portfolio_returns, initial_value,
+                                            years=years, n_paths=n_paths)
             else:
                 console.print(f"Method is not recognized")
 

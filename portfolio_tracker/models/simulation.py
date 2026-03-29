@@ -12,6 +12,8 @@ import pandas as pd
 from arch import arch_model
 from scipy import stats
 from scipy.stats import t as student_t
+from hmmlearn.hmm import GaussianHMM
+
 
 def draw_shocks(n: int, method: str = "normal", fitted_returns: pd.Series = None, df: float = None):
     if method == "normal":
@@ -155,6 +157,91 @@ def run_garch_simulation(
         
     return paths
 
+def run_regime_simulation(
+    returns: pd.Series,
+    initial_value: float,
+    years: int = 15,
+    n_paths: int = 100_000,
+    trading_days: int = 252,
+    n_regimes: int = 2,
+) -> np.ndarray:
+    """
+    Simulate future portfolio value using a Regime-Switching model.
+
+    Fits a Hidden Markov Model (HMM) with n_regimes states on the
+    historical returns. Each regime has its own mean and variance.
+    At each step the simulation probabilistically switches between
+    regimes based on the fitted transition matrix.
+
+    Parameters
+    returns      : daily log returns of the portfolio (historical)
+    initial_value: starting portfolio value
+    years        : simulation horizon in years
+    n_paths      : number of simulated paths
+    trading_days : trading days per year
+    n_regimes    : number of regimes, default 2 (bull and bear)
+
+    Returns
+    paths : np.ndarray of shape (n_steps + 1, n_paths)
+    """
+
+    n_steps = years * trading_days
+
+    X = returns.values.reshape(-1, 1)
+
+    # Fit HMM on historical returns
+    model = GaussianHMM(
+        n_components=n_regimes,
+        covariance_type="full",
+        n_iter=1000,
+        random_state=42,
+    )
+    model.fit(X)
+
+    # Extract fitted parameters
+    means   	= model.means_.flatten()             # mean return per regime
+    stds        = np.sqrt(model.covars_.flatten())   # std per regime
+    transmat    = model.transmat_                    # transition matrix
+    startprob   = model.startprob_                   # starting probabilities
+
+    # Identify bull and bear regimes by mean return
+    # (just for printing — simulation uses all regimes)
+    bull = np.argmax(means)
+    bear = np.argmin(means)
+    print(f"Bull regime (state {bull}): mu={means[bull]*252:.2%}, "
+          f"sigma={stds[bull]*np.sqrt(252):.2%}")
+    print(f"Bear regime (state {bear}): mu={means[bear]*252:.2%}, "
+          f"sigma={stds[bear]*np.sqrt(252):.2%}")
+    print(f"Transition matrix:\n{transmat}")
+
+    # Simulate paths
+    paths = np.empty((n_steps + 1, n_paths))
+    paths[0] = initial_value
+
+    # Each path starts in a regime drawn from startprob
+    current_regimes = np.random.choice(n_regimes, size=n_paths, p=startprob)
+
+    for t in range(1, n_steps + 1):
+        # Draw returns based on current regime for each path
+        Z = np.random.standard_normal(n_paths)
+        mu_t    = means[current_regimes]
+        sigma_t = stds[current_regimes]
+        daily_return = np.exp(mu_t + sigma_t * Z)
+        paths[t] = paths[t - 1] * daily_return
+
+        # Transition to next regime for each path
+        new_regimes = np.empty(n_paths, dtype=int)
+        for regime in range(n_regimes):
+            mask = current_regimes == regime
+            if mask.any():
+                new_regimes[mask] = np.random.choice(
+                    n_regimes,
+                    size=mask.sum(),
+                    p=transmat[regime],
+                )
+        current_regimes = new_regimes
+
+    return paths
 
 def simulation_stats(paths: np.ndarray) -> dict:
     """

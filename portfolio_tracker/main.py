@@ -121,9 +121,9 @@ def test_dist(method, period):
 # Simulation Commands
 @cli.command()
 @click.option("--method", "-m",
-              type=click.Choice(["gbm", "garch"]),
+              type=click.Choice(["gbm", "garch", "regime"]),
               default="gbm", show_default=True,
-              help="Simulation method: gbm or garch")
+              help="Simulation method: gbm, garch or regime")
 @click.option("--dist", "-d",
               type=click.Choice(["normal", "student-t", "edf"]),
               default="normal", show_default=True,
