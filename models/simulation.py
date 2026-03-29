@@ -193,23 +193,27 @@ def run_regime_simulation(
     """
 
     n_steps = years * trading_days
-
-    X = returns.values.reshape(-1, 1)
+    
+    # Standardize
+    mu = returns.mean()
+    std = returns.std()
+    X = ((returns - mu) / std).values.reshape(-1, 1)
 
     # Fit HMM on historical returns
     model = GaussianHMM(
         n_components=n_regimes,
         covariance_type="full",
-        n_iter=1000,
+        n_iter=3000,
+        tol=1e-6, 
         random_state=42,
     )
     model.fit(X)
 
     # Extract fitted parameters
-    means   	= model.means_.flatten()             # mean return per regime
-    stds        = np.sqrt(model.covars_.flatten())   # std per regime
-    transmat    = model.transmat_                    # transition matrix
-    startprob   = model.startprob_                   # starting probabilities
+    means   	= model.means_.flatten() * std + mu        # mean return per regime
+    stds        = np.sqrt(model.covars_.flatten()) * std   # std per regime
+    transmat    = model.transmat_                          # transition matrix
+    startprob   = model.startprob_                         # starting probabilities
 
     # Identify bull and bear regimes by mean return
     # (just for printing — simulation uses all regimes)
