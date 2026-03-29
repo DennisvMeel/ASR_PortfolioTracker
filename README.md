@@ -60,8 +60,14 @@ portfolio-tracker/
 
 ## Requirements
 
-- Python **3.10 – 3.12** (3.13+ may have issues with `hmmlearn` on Windows)
+- Python **3.12** (3.13+ may have issues with `hmmlearn` on Windows)
 - An active internet connection (for live price fetching)
+
+> **Windows users (non-Anaconda only):** `hmmlearn` requires Python 3.12 and 
+> Microsoft C++ Build Tools to install correctly. Download Python 3.12 from 
+> https://www.python.org/downloads/release/python-3129/ and C++ Build Tools from
+> https://visualstudio.microsoft.com/visual-cpp-build-tools/ (select 
+> "Desktop development with C++" during installation).
 
 ---
 
@@ -69,7 +75,7 @@ portfolio-tracker/
 
 **1. Download the repository**
 
-Click the green **Code** button on GitHub → **Download ZIP**, then unzip it. Or if you have Git:
+Click the green **Code** button on GitHub, **Download ZIP**, then unzip it. Or if you have Git:
 
 ```cmd
 git clone https://github.com/DennisvMeel/ASR_PortfolioTracker.git
