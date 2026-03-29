@@ -195,6 +195,12 @@ class PortfolioController:
         console.print(f"Deleted portfolio '{name}'")
 
     # View Commands
+    def _resolve_save_path(self, filename: str) -> str:
+        """Resolve a chart filename to the charts output directory."""
+        path = os.path.join("data", "charts")
+        os.makedirs(path, exist_ok=True)
+        return os.path.join(path, filename)
+
     def show_portfolio(self, refresh: bool = True):
         """
         Display the full portfolio table and summary panel.
@@ -268,6 +274,9 @@ class PortfolioController:
         if hist.empty:
             return
         
+        if save:
+            save = self._resolve_save_path(save)
+
         show_price_chart_matplotlib(hist, tickers, save_path=save)
         
     def _weighted_portfolio_returns(self, hist: pd.DataFrame) -> pd.Series:
@@ -338,6 +347,10 @@ class PortfolioController:
             
         stats = simulation_stats(paths)
         es = expected_shortfall(paths)
+        
+        if save:
+            save = self._resolve_save_path(save)
+
         show_simulation_stats(stats, initial_value, years, n_paths, es, method=method, dist=dist)
         show_simulation_chart(paths, initial_value, years, n_paths, save_path=save, method=method, dist=dist)
     
@@ -442,6 +455,9 @@ class PortfolioController:
         hist = self.get_price_history(tickers, period=period)
         if hist.empty:
             return
+        
+        if save:
+            save = self._resolve_save_path(save)
         
         returns = hist.apply(lambda col: np.log(col / col.shift(1))).dropna()
         show_correlation_heatmap(returns, save_path=save)
