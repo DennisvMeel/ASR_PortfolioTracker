@@ -70,7 +70,7 @@ class PortfolioController:
             return
 
         # Get the current price from the most recent close
-        current_price = float(data["Close"].iloc[-1])
+        current_price = float(data["Close"].iloc[-1].iloc[0])
 
         asset = self.portfolio.add_asset(ticker, sector, asset_class,
                                          quantity, purchase_price)

@@ -17,7 +17,6 @@ from scipy import stats
 
 console = Console()
 
-
 def show_portfolio_list(portfolios: list[str], active: str):
     """
     Render a table listing all saved portfolios.
@@ -164,13 +163,15 @@ def show_price_chart_matplotlib(hist: pd.DataFrame, tickers: list[str],
     ax.legend()
     ax.grid(alpha=0.3)
     fig.tight_layout()
-
-    if save_path:
-        plt.savefig(save_path, dpi=150)
-        console.print(f"Chart saved to {save_path}")
-    else:
-        plt.show()
-    plt.close(fig)
+    
+    try:
+        if save_path:
+            plt.savefig(save_path, dpi=150)
+            console.print(f"Heatmap saved to {save_path}")
+        else:
+            plt.show()
+    finally:
+        plt.close(fig)
     
 def show_simulation_stats(stats: dict, initial_value: float, years: int, 
                           n_paths: int, es: float = None, method: str = "gbm",
@@ -274,13 +275,15 @@ def show_simulation_chart(paths: np.ndarray, initial_value: float,
     ax.set_title(f"Monte Carlo Simulation — {method.upper()} ({dist}) ({years}-Year Horizon, {n_paths} paths)")
     ax.legend()
     fig.tight_layout()
-
-    if save_path:
-        plt.savefig(save_path, dpi=150)
-        console.print(f"Simulation chart saved to {save_path}")
-    else:
-        plt.show()
-    plt.close(fig)
+        
+    try:
+        if save_path:
+            plt.savefig(save_path, dpi=150)
+            console.print(f"Heatmap saved to {save_path}")
+        else:
+            plt.show()
+    finally:
+        plt.close(fig)
     
 def show_risk_table(weights: dict[str, float], risk_contributions: dict[str, float],
                     sharpes: dict[str, float]):
@@ -449,10 +452,12 @@ def show_correlation_heatmap(returns: pd.DataFrame, save_path: str = None):
 
     ax.set_title("Asset Return Correlations")
     fig.tight_layout()
-
-    if save_path:
-        plt.savefig(save_path, dpi=150)
-        console.print(f"Heatmap saved to {save_path}")
-    else:
-        plt.show()
-    plt.close(fig)
+    
+    try:
+        if save_path:
+            plt.savefig(save_path, dpi=150)
+            console.print(f"Heatmap saved to {save_path}")
+        else:
+            plt.show()
+    finally:
+        plt.close(fig)

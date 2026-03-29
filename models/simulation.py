@@ -9,11 +9,18 @@ volatility estimated from historical data.
 
 import numpy as np
 import pandas as pd
+import os
+import warnings
+
 from arch import arch_model
 from scipy import stats
 from scipy.stats import t as student_t
 from hmmlearn.hmm import GaussianHMM
 
+os.environ.setdefault("OMP_NUM_THREADS", "5")
+
+warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
+warnings.filterwarnings("ignore", message="Model is not converging*")
 
 def draw_shocks(n: int, method: str = "normal", fitted_returns: pd.Series = None, df: float = None):
     if method == "normal":
@@ -212,7 +219,6 @@ def run_regime_simulation(
           f"sigma={stds[bull]*np.sqrt(252):.2%}")
     print(f"Bear regime (state {bear}): mu={means[bear]*252:.2%}, "
           f"sigma={stds[bear]*np.sqrt(252):.2%}")
-    print(f"Transition matrix:\n{transmat}")
 
     # Simulate paths
     paths = np.empty((n_steps + 1, n_paths))
